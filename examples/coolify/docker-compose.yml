@@ -1,0 +1,98 @@
+services:
+  web:
+    image: jitsi/web:${JITSI_IMAGE_VERSION:-stable}
+    restart: unless-stopped
+    expose:
+      - "80"
+    volumes:
+      - jitsi-web-config:/config
+      - jitsi-web-crontabs:/var/spool/cron/crontabs
+      - jitsi-transcripts:/usr/share/jitsi-meet/transcripts
+    environment:
+      - ENABLE_COLIBRI_WEBSOCKET=1
+      - ENABLE_XMPP_WEBSOCKET=1
+      - PUBLIC_URL=${PUBLIC_URL}
+      - TZ=${TZ:-Europe/Berlin}
+      - DISABLE_HTTPS=${DISABLE_HTTPS:-1}
+      - ENABLE_HTTP_REDIRECT=${ENABLE_HTTP_REDIRECT:-0}
+    depends_on:
+      - jvb
+    networks:
+      meet.jitsi:
+
+  prosody:
+    image: jitsi/prosody:${JITSI_IMAGE_VERSION:-stable}
+    restart: unless-stopped
+    expose:
+      - "5222"
+      - "5347"
+      - "5280"
+    volumes:
+      - jitsi-prosody-config:/config
+      - jitsi-prosody-plugins:/prosody-plugins-custom
+    environment:
+      - PUBLIC_URL=${PUBLIC_URL}
+      - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD}
+      - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD}
+      - TZ=${TZ:-Europe/Berlin}
+      - XMPP_DOMAIN=${XMPP_DOMAIN:-meet.jitsi}
+      - XMPP_AUTH_DOMAIN=${XMPP_AUTH_DOMAIN:-auth.meet.jitsi}
+      - XMPP_MUC_DOMAIN=${XMPP_MUC_DOMAIN:-muc.meet.jitsi}
+      - XMPP_INTERNAL_MUC_DOMAIN=${XMPP_INTERNAL_MUC_DOMAIN:-internal-muc.meet.jitsi}
+    networks:
+      meet.jitsi:
+        aliases:
+          - xmpp.meet.jitsi
+
+  jicofo:
+    image: jitsi/jicofo:${JITSI_IMAGE_VERSION:-stable}
+    restart: unless-stopped
+    volumes:
+      - jitsi-jicofo-config:/config
+    environment:
+      - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD}
+      - XMPP_SERVER=xmpp.meet.jitsi
+      - TZ=${TZ:-Europe/Berlin}
+      - XMPP_DOMAIN=${XMPP_DOMAIN:-meet.jitsi}
+      - XMPP_AUTH_DOMAIN=${XMPP_AUTH_DOMAIN:-auth.meet.jitsi}
+      - XMPP_MUC_DOMAIN=${XMPP_MUC_DOMAIN:-muc.meet.jitsi}
+      - XMPP_INTERNAL_MUC_DOMAIN=${XMPP_INTERNAL_MUC_DOMAIN:-internal-muc.meet.jitsi}
+    depends_on:
+      - prosody
+    networks:
+      meet.jitsi:
+
+  jvb:
+    image: jitsi/jvb:${JITSI_IMAGE_VERSION:-stable}
+    restart: unless-stopped
+    ports:
+      - "${JVB_PORT:-10000}:${JVB_PORT:-10000}/udp"
+    volumes:
+      - jitsi-jvb-config:/config
+    environment:
+      - PUBLIC_URL=${PUBLIC_URL}
+      - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD}
+      - JVB_ADVERTISE_IPS=${JVB_ADVERTISE_IPS}
+      - JVB_PORT=${JVB_PORT:-10000}
+      - JVB_STUN_SERVERS=${JVB_STUN_SERVERS:-meet-jit-si-turnrelay.jitsi.net:443}
+      - XMPP_SERVER=xmpp.meet.jitsi
+      - TZ=${TZ:-Europe/Berlin}
+      - XMPP_DOMAIN=${XMPP_DOMAIN:-meet.jitsi}
+      - XMPP_AUTH_DOMAIN=${XMPP_AUTH_DOMAIN:-auth.meet.jitsi}
+      - XMPP_INTERNAL_MUC_DOMAIN=${XMPP_INTERNAL_MUC_DOMAIN:-internal-muc.meet.jitsi}
+    depends_on:
+      - prosody
+    networks:
+      meet.jitsi:
+
+volumes:
+  jitsi-web-config:
+  jitsi-web-crontabs:
+  jitsi-transcripts:
+  jitsi-prosody-config:
+  jitsi-prosody-plugins:
+  jitsi-jicofo-config:
+  jitsi-jvb-config:
+
+networks:
+  meet.jitsi:
