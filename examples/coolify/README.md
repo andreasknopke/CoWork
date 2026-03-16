@@ -23,6 +23,12 @@ Required values:
 - `JVB_AUTH_PASSWORD` (long random secret)
 - `JVB_ADVERTISE_IPS` (public IP of the host where JVB runs)
 
+Recommended XMPP setting for Coolify:
+
+- `XMPP_SERVER=prosody`
+
+The example compose file passes `XMPP_SERVER` through to Prosody, Jicofo and JVB. This avoids the previous hardcoded fallback to `xmpp.meet.jitsi`, which could cause Jicofo/JVB to resolve against public DNS instead of the internal container network.
+
 Useful command to generate strong secrets:
 
 ```bash

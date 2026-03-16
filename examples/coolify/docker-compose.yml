@@ -35,6 +35,7 @@ services:
       - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD}
       - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD}
       - TZ=${TZ:-Europe/Berlin}
+      - XMPP_SERVER=${XMPP_SERVER:-prosody}
       - XMPP_DOMAIN=${XMPP_DOMAIN:-meet.jitsi}
       - XMPP_AUTH_DOMAIN=${XMPP_AUTH_DOMAIN:-auth.meet.jitsi}
       - XMPP_MUC_DOMAIN=${XMPP_MUC_DOMAIN:-muc.meet.jitsi}
@@ -42,7 +43,7 @@ services:
     networks:
       meet.jitsi:
         aliases:
-          - xmpp.meet.jitsi
+          - ${XMPP_SERVER:-prosody}
 
   jicofo:
     image: jitsi/jicofo:${JITSI_IMAGE_VERSION:-stable}
@@ -51,7 +52,7 @@ services:
       - jitsi-jicofo-config:/config
     environment:
       - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD}
-      - XMPP_SERVER=xmpp.meet.jitsi
+      - XMPP_SERVER=${XMPP_SERVER:-prosody}
       - TZ=${TZ:-Europe/Berlin}
       - XMPP_DOMAIN=${XMPP_DOMAIN:-meet.jitsi}
       - XMPP_AUTH_DOMAIN=${XMPP_AUTH_DOMAIN:-auth.meet.jitsi}
@@ -75,7 +76,7 @@ services:
       - JVB_ADVERTISE_IPS=${JVB_ADVERTISE_IPS}
       - JVB_PORT=${JVB_PORT:-10000}
       - JVB_STUN_SERVERS=${JVB_STUN_SERVERS:-meet-jit-si-turnrelay.jitsi.net:443}
-      - XMPP_SERVER=xmpp.meet.jitsi
+      - XMPP_SERVER=${XMPP_SERVER:-prosody}
       - TZ=${TZ:-Europe/Berlin}
       - XMPP_DOMAIN=${XMPP_DOMAIN:-meet.jitsi}
       - XMPP_AUTH_DOMAIN=${XMPP_AUTH_DOMAIN:-auth.meet.jitsi}
