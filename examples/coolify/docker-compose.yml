@@ -76,7 +76,6 @@ services:
     volumes:
       - jitsi-jvb-config:/config
     environment:
-      - ENABLE_COLIBRI_WEBSOCKET=1
       - PUBLIC_URL=${PUBLIC_URL}
       - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD}
       # REQUIRED: public IP of the host - wrong value is the #1 cause of ICE failures
