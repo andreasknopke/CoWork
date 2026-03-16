@@ -15,6 +15,8 @@ services:
       - TZ=${TZ:-Europe/Berlin}
       - DISABLE_HTTPS=${DISABLE_HTTPS:-1}
       - ENABLE_HTTP_REDIRECT=${ENABLE_HTTP_REDIRECT:-0}
+      # Ensure nginx proxies BOSH/XMPP-WS to the same internal XMPP host used by other services
+      - XMPP_BOSH_URL_BASE=http://${XMPP_SERVER:-prosody}:5280
       # Must match JVB_WS_SERVER_ID in the jvb service
       - COLIBRI_WEBSOCKET_REGEX=jvb
       - DISABLE_COLIBRI_WEBSOCKET_JVB_LOOKUP=1
@@ -74,6 +76,7 @@ services:
     volumes:
       - jitsi-jvb-config:/config
     environment:
+      - ENABLE_COLIBRI_WEBSOCKET=1
       - PUBLIC_URL=${PUBLIC_URL}
       - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD}
       # REQUIRED: public IP of the host - wrong value is the #1 cause of ICE failures
