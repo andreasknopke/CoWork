@@ -11,6 +11,8 @@ services:
     environment:
       - ENABLE_COLIBRI_WEBSOCKET=1
       - ENABLE_XMPP_WEBSOCKET=1
+      # Force media over JVB instead of browser P2P to avoid 1:1 NAT edge cases
+      - ENABLE_P2P=0
       - PUBLIC_URL=${PUBLIC_URL}
       - TZ=${TZ:-Europe/Berlin}
       - DISABLE_HTTPS=${DISABLE_HTTPS:-1}
@@ -85,6 +87,8 @@ services:
       - JVB_ADVERTISE_PRIVATE_CANDIDATES=false
       - JVB_PORT=${JVB_PORT:-10000}
       - JVB_STUN_SERVERS=${JVB_STUN_SERVERS:-meet-jit-si-turnrelay.jitsi.net:443}
+      # Use explicit static mapping from JVB_ADVERTISE_IPS only; avoids failing STUN harvester paths
+      - JVB_DISABLE_STUN=true
       # Pin the Colibri WS server-id to a stable name so nginx regex matches reliably
       - JVB_WS_SERVER_ID=jvb
       - XMPP_SERVER=${XMPP_SERVER:-prosody}
