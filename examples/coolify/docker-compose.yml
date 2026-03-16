@@ -15,6 +15,9 @@ services:
       - TZ=${TZ:-Europe/Berlin}
       - DISABLE_HTTPS=${DISABLE_HTTPS:-1}
       - ENABLE_HTTP_REDIRECT=${ENABLE_HTTP_REDIRECT:-0}
+      # Must match JVB_WS_SERVER_ID in the jvb service
+      - COLIBRI_WEBSOCKET_REGEX=jvb
+      - DISABLE_COLIBRI_WEBSOCKET_JVB_LOOKUP=1
     depends_on:
       - jvb
     networks:
@@ -35,7 +38,6 @@ services:
       - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD}
       - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD}
       - TZ=${TZ:-Europe/Berlin}
-      - XMPP_SERVER=${XMPP_SERVER:-prosody}
       - XMPP_DOMAIN=${XMPP_DOMAIN:-meet.jitsi}
       - XMPP_AUTH_DOMAIN=${XMPP_AUTH_DOMAIN:-auth.meet.jitsi}
       - XMPP_MUC_DOMAIN=${XMPP_MUC_DOMAIN:-muc.meet.jitsi}
@@ -43,7 +45,7 @@ services:
     networks:
       meet.jitsi:
         aliases:
-          - ${XMPP_SERVER:-prosody}
+          - xmpp.meet.jitsi
 
   jicofo:
     image: jitsi/jicofo:${JITSI_IMAGE_VERSION:-stable}
@@ -52,7 +54,7 @@ services:
       - jitsi-jicofo-config:/config
     environment:
       - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD}
-      - XMPP_SERVER=${XMPP_SERVER:-prosody}
+      - XMPP_SERVER=xmpp.meet.jitsi
       - TZ=${TZ:-Europe/Berlin}
       - XMPP_DOMAIN=${XMPP_DOMAIN:-meet.jitsi}
       - XMPP_AUTH_DOMAIN=${XMPP_AUTH_DOMAIN:-auth.meet.jitsi}
@@ -73,10 +75,15 @@ services:
     environment:
       - PUBLIC_URL=${PUBLIC_URL}
       - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD}
+      # REQUIRED: public IP of the host - wrong value is the #1 cause of ICE failures
       - JVB_ADVERTISE_IPS=${JVB_ADVERTISE_IPS}
+      # Disable private Docker-internal IPs as ICE candidates (they are unreachable from outside)
+      - JVB_ADVERTISE_PRIVATE_CANDIDATES=false
       - JVB_PORT=${JVB_PORT:-10000}
       - JVB_STUN_SERVERS=${JVB_STUN_SERVERS:-meet-jit-si-turnrelay.jitsi.net:443}
-      - XMPP_SERVER=${XMPP_SERVER:-prosody}
+      # Pin the Colibri WS server-id to a stable name so nginx regex matches reliably
+      - JVB_WS_SERVER_ID=jvb
+      - XMPP_SERVER=xmpp.meet.jitsi
       - TZ=${TZ:-Europe/Berlin}
       - XMPP_DOMAIN=${XMPP_DOMAIN:-meet.jitsi}
       - XMPP_AUTH_DOMAIN=${XMPP_AUTH_DOMAIN:-auth.meet.jitsi}
