@@ -55,8 +55,29 @@ If you change `JVB_PORT`, open that UDP port instead.
 
 - The first startup takes longer because Prosody and web config are initialized.
 - Wrong `JVB_ADVERTISE_IPS` is the most common reason for calls with no audio/video.
+- Browser logs containing `get STUN/TURN credentials (extdisco)` with `service-unavailable` mean that Prosody is not advertising any TURN service.
 
-## 5. Diagnostics
+## 5. TURN Relay
+
+For users behind restrictive firewalls or NAT, configure a TURN server and provide the TURN variables from `env.example`.
+
+Typical `coturn` setup:
+
+- `TURN_HOST=turn.example.com`
+- `TURNS_HOST=turn.example.com`
+- `TURN_PORT=3478`
+- `TURNS_PORT=5349`
+- `TURN_TRANSPORT=udp,tcp`
+- `TURN_CREDENTIALS=<coturn static-auth-secret>`
+
+If you prefer static credentials instead of a shared secret, use:
+
+- `TURN_USERNAME=<username>`
+- `TURN_PASSWORD=<password>`
+
+These values are consumed by Prosody and exposed to clients through XMPP extdisco.
+
+## 6. Diagnostics
 
 This example now enables more verbose diagnostics by default while investigating unstable media sessions:
 
