@@ -82,6 +82,8 @@ You do not need a second VM or a second physical server for this. The `turn` ser
 
 You can reuse the same DNS name as `PUBLIC_URL` if it already points to the public host. TURN uses its own ports and is not routed through the HTTP reverse proxy.
 
+For this minimal setup, TLS TURN on port 5349 is intentionally disabled. Leave `TURNS_HOST` empty unless you explicitly add certificates and want TURN over TLS.
+
 If you prefer an external TURN server instead of the bundled container, keep using:
 
 - `TURN_USERNAME=<username>`

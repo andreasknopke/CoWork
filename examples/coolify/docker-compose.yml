@@ -36,10 +36,12 @@ services:
       - -n
       - --log-file=stdout
       - --fingerprint
+      - --no-tls
+      - --no-dtls
       - --use-auth-secret
-      - --static-auth-secret=${TURN_CREDENTIALS}
-      - --realm=${TURN_HOST}
-      - --external-ip=${TURN_EXTERNAL_IP}
+      - --static-auth-secret=${TURN_CREDENTIALS:?TURN_CREDENTIALS is required}
+      - --realm=${TURN_HOST:?TURN_HOST is required}
+      - --external-ip=${TURN_EXTERNAL_IP:?TURN_EXTERNAL_IP is required}
       - --listening-ip=0.0.0.0
       - --listening-port=${TURN_PORT:-3478}
       - --min-port=${TURN_MIN_PORT:-20000}
