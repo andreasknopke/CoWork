@@ -69,14 +69,13 @@ If you change `TURN_PORT` or the relay range, open those values instead.
 
 ## 5. Local Recovery Workaround
 
-For one specific local installation with a repeatable drop around `70` seconds, this example also supports an intentionally local-only stopgap:
+For one specific local installation with a repeatable drop around `70` seconds, this example also supports an intentionally local-only stopgap.
 
-- `ENABLE_LOCAL_RECOVERY_WORKAROUND=1`
-- `LOCAL_RECOVERY_REJOIN_MILLISECONDS=55000`
-- `LOCAL_RECOVERY_INTERRUPT_GRACE_MILLISECONDS=2500`
-- `LOCAL_RECOVERY_REJOIN_TIMEOUT_MILLISECONDS=15000`
-- `LOCAL_RECOVERY_MIN_INTERVAL_MILLISECONDS=10000`
-- `LOCAL_RECOVERY_RELOAD_FALLBACK=1`
+Important deployment detail:
+
+- This compose example deploys the published upstream image `jitsi/web`, not a locally rebuilt image from this repository.
+- Therefore changes under `web/rootfs/defaults/...` do not affect Coolify by themselves.
+- The workaround is delivered through a mounted [examples/coolify/custom-config.js](examples/coolify/custom-config.js), which the stock web image appends to `/config/config.js` at startup.
 
 What it does:
 
@@ -84,6 +83,13 @@ What it does:
 - Internally it uses Jitsi's legacy `APP.conference.leaveRoom(false)` plus `APP.conference.joinRoom(...)` path.
 - If the timer misses and the conference fires `connectionInterrupted` first, the client retries after a short grace period.
 - If that silent rejoin stalls, the browser reloads once and suppresses prejoin for the recovery load.
+
+Current tuning in [examples/coolify/custom-config.js](examples/coolify/custom-config.js):
+
+- preemptive rejoin after `55` seconds
+- interrupt grace of `2.5` seconds
+- watchdog timeout of `15` seconds
+- minimum gap between recovery attempts of `10` seconds
 
 This is not meant as a portable upstream fix. It is a site-local workaround for a deterministic failure pattern while the real media-path root cause is still under investigation.
 
@@ -130,7 +136,7 @@ This example now enables more verbose diagnostics by default while investigating
 - `COLIBRI_WEBSOCKET_PROXY_READ_TIMEOUT=3600s`
 - `COLIBRI_WEBSOCKET_PROXY_SEND_TIMEOUT=3600s`
 - `PROSODY_SMACKS_HIBERNATION_TIME=300`
-- `ENABLE_LOCAL_RECOVERY_WORKAROUND=1` on the affected local deployment only
+- mounted [examples/coolify/custom-config.js](examples/coolify/custom-config.js) on the affected local deployment only
 
 What to look for:
 
