@@ -10,7 +10,7 @@ services:
       - jitsi-transcripts:/usr/share/jitsi-meet/transcripts
     environment:
       - ENABLE_COLIBRI_WEBSOCKET=1
-      - ENABLE_XMPP_WEBSOCKET=1
+      - ENABLE_XMPP_WEBSOCKET=${ENABLE_XMPP_WEBSOCKET:-0}
       - PREFER_BOSH=${PREFER_BOSH:-1}
       - PUBLIC_URL=${PUBLIC_URL}
       - TZ=${TZ:-Europe/Berlin}

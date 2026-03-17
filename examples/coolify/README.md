@@ -98,6 +98,7 @@ These values are consumed by Prosody and exposed to clients through XMPP extdisc
 
 This example now enables more verbose diagnostics by default while investigating unstable media sessions:
 
+- `ENABLE_XMPP_WEBSOCKET=0`
 - `PREFER_BOSH=1`
 - `PROSODY_LOG_LEVEL=debug`
 - `JICOFO_LOG_LEVEL=FINE`
@@ -112,11 +113,13 @@ This example now enables more verbose diagnostics by default while investigating
 
 What to look for:
 
-- If the conference becomes stable with `PREFER_BOSH=1`, the timer is on the websocket path in front of Jitsi, not in Jicofo or Prosody room logic.
-- If it still dies with `PREFER_BOSH=1`, the timer is outside the XMPP websocket path and we should inspect the host app lifecycle or external automation next.
+- If the conference becomes stable with `ENABLE_XMPP_WEBSOCKET=0`, the timer is on the websocket path in front of Jitsi, not in Jicofo or Prosody room logic.
+- If it still dies with `ENABLE_XMPP_WEBSOCKET=0`, the timer is outside the XMPP websocket path and we should inspect the host app lifecycle or external automation next.
 - Auth or JWT problems usually show up in Prosody or Jicofo as token/authentication errors.
 - Media path problems usually show up as repeated ICE restarts in JVB and `restartRequested=true` in Jicofo.
 - Connection lifecycle timing for `/http-bind` and `/xmpp-websocket` is now logged by nginx with request duration, upstream duration, and upgrade status.
+
+If you later want to test websocket again, set `ENABLE_XMPP_WEBSOCKET=1` and keep `PREFER_BOSH=1` so the client still prefers BOSH when both paths are available.
 
 If you need even more detail, set additional java.util.logging categories through:
 
