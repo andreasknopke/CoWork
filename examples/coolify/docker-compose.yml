@@ -25,6 +25,31 @@ services:
     networks:
       meet.jitsi:
 
+  turn:
+    image: coturn/coturn:latest
+    restart: unless-stopped
+    ports:
+      - "${TURN_PORT:-3478}:${TURN_PORT:-3478}/udp"
+      - "${TURN_PORT:-3478}:${TURN_PORT:-3478}/tcp"
+      - "${TURN_MIN_PORT:-20000}-${TURN_MAX_PORT:-20050}:${TURN_MIN_PORT:-20000}-${TURN_MAX_PORT:-20050}/udp"
+    command:
+      - -n
+      - --log-file=stdout
+      - --fingerprint
+      - --use-auth-secret
+      - --static-auth-secret=${TURN_CREDENTIALS}
+      - --realm=${TURN_HOST}
+      - --external-ip=${TURN_EXTERNAL_IP}
+      - --listening-ip=0.0.0.0
+      - --listening-port=${TURN_PORT:-3478}
+      - --min-port=${TURN_MIN_PORT:-20000}
+      - --max-port=${TURN_MAX_PORT:-20050}
+      - --no-cli
+      - --no-multicast-peers
+      - --stale-nonce=600
+    networks:
+      meet.jitsi:
+
   prosody:
     image: jitsi/prosody:${JITSI_IMAGE_VERSION:-stable}
     restart: unless-stopped

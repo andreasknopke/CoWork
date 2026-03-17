@@ -1,8 +1,9 @@
 # Coolify deployment example
 
-This example provides a minimal 4-service Jitsi Meet stack for Coolify:
+This example provides a minimal Jitsi Meet stack for Coolify with an integrated coturn relay on the same host:
 
 - `web`
+- `turn`
 - `prosody`
 - `jicofo`
 - `jvb`
@@ -22,6 +23,9 @@ Required values:
 - `JICOFO_AUTH_PASSWORD` (long random secret)
 - `JVB_AUTH_PASSWORD` (long random secret)
 - `JVB_ADVERTISE_IPS` (public IP of the host where JVB runs)
+- `TURN_CREDENTIALS` (long random secret for coturn REST auth)
+- `TURN_HOST` (hostname that resolves to the same public host)
+- `TURN_EXTERNAL_IP` (public IP of the same host)
 
 Useful command to generate strong secrets:
 
@@ -48,8 +52,11 @@ If you do not use Coolify proxy termination, you can switch to container TLS:
 Jitsi media requires UDP:
 
 - `10000/udp` must be reachable from the internet to the `jvb` container.
+- `3478/tcp` and `3478/udp` must be reachable to the `turn` container.
+- `20000-20050/udp` must be reachable to the `turn` container for relayed media.
 
 If you change `JVB_PORT`, open that UDP port instead.
+If you change `TURN_PORT` or the relay range, open those values instead.
 
 ## 4. Notes
 
@@ -59,18 +66,23 @@ If you change `JVB_PORT`, open that UDP port instead.
 
 ## 5. TURN Relay
 
-For users behind restrictive firewalls or NAT, configure a TURN server and provide the TURN variables from `env.example`.
+For users behind restrictive firewalls or NAT, this example includes a coturn relay on the same Coolify host.
 
-Typical `coturn` setup:
+Recommended bundled `coturn` setup:
 
-- `TURN_HOST=turn.example.com`
-- `TURNS_HOST=turn.example.com`
+- `TURN_HOST=cowork.example.com`
+- `STUN_HOST=cowork.example.com`
+- `TURN_EXTERNAL_IP=<same public IP as JVB>`
 - `TURN_PORT=3478`
-- `TURNS_PORT=5349`
-- `TURN_TRANSPORT=udp,tcp`
+- `TURN_MIN_PORT=20000`
+- `TURN_MAX_PORT=20050`
 - `TURN_CREDENTIALS=<coturn static-auth-secret>`
 
-If you prefer static credentials instead of a shared secret, use:
+You do not need a second VM or a second physical server for this. The `turn` service runs as an additional container on the same host.
+
+You can reuse the same DNS name as `PUBLIC_URL` if it already points to the public host. TURN uses its own ports and is not routed through the HTTP reverse proxy.
+
+If you prefer an external TURN server instead of the bundled container, keep using:
 
 - `TURN_USERNAME=<username>`
 - `TURN_PASSWORD=<password>`
