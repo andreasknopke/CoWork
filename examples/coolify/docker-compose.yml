@@ -39,6 +39,7 @@ services:
       - PUBLIC_URL=${PUBLIC_URL}
       - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD}
       - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD}
+      - LOG_LEVEL=${PROSODY_LOG_LEVEL:-debug}
       - TZ=${TZ:-Europe/Berlin}
       - XMPP_SERVER=${XMPP_SERVER:-prosody}
       - XMPP_DOMAIN=${XMPP_DOMAIN:-meet.jitsi}
@@ -57,6 +58,9 @@ services:
       - jitsi-jicofo-config:/config
     environment:
       - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD}
+      - JICOFO_LOG_LEVEL=${JICOFO_LOG_LEVEL:-FINE}
+      - JICOFO_LOG_FILE=${JICOFO_LOG_FILE:-/config/jicofo.log}
+      - JICOFO_EXTRA_LOGGERS=${JICOFO_EXTRA_LOGGERS:-}
       - XMPP_SERVER=${XMPP_SERVER:-prosody}
       - TZ=${TZ:-Europe/Berlin}
       - XMPP_DOMAIN=${XMPP_DOMAIN:-meet.jitsi}
@@ -78,6 +82,9 @@ services:
     environment:
       - PUBLIC_URL=${PUBLIC_URL}
       - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD}
+      - JVB_LOG_LEVEL=${JVB_LOG_LEVEL:-FINE}
+      - JVB_LOG_FILE=${JVB_LOG_FILE:-/config/jvb.log}
+      - JVB_EXTRA_LOGGERS=${JVB_EXTRA_LOGGERS:-}
       # REQUIRED: public IP of the host - wrong value is the #1 cause of ICE failures
       - JVB_ADVERTISE_IPS=${JVB_ADVERTISE_IPS}
       # Disable private Docker-internal IPs as ICE candidates (they are unreachable from outside)

@@ -55,3 +55,25 @@ If you change `JVB_PORT`, open that UDP port instead.
 
 - The first startup takes longer because Prosody and web config are initialized.
 - Wrong `JVB_ADVERTISE_IPS` is the most common reason for calls with no audio/video.
+
+## 5. Diagnostics
+
+This example now enables more verbose diagnostics by default while investigating unstable media sessions:
+
+- `PROSODY_LOG_LEVEL=debug`
+- `JICOFO_LOG_LEVEL=FINE`
+- `JVB_LOG_LEVEL=FINE`
+- `JICOFO_LOG_FILE=/config/jicofo.log`
+- `JVB_LOG_FILE=/config/jvb.log`
+
+What to look for:
+
+- Auth or JWT problems usually show up in Prosody or Jicofo as token/authentication errors.
+- Media path problems usually show up as repeated ICE restarts in JVB and `restartRequested=true` in Jicofo.
+
+If you need even more detail, set additional java.util.logging categories through:
+
+- `JICOFO_EXTRA_LOGGERS`
+- `JVB_EXTRA_LOGGERS`
+
+These values are appended directly to the generated `logging.properties` files and can contain multiple lines.
