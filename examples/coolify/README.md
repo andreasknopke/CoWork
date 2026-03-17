@@ -76,6 +76,7 @@ Important deployment detail:
 - The web service is now built from [web/Dockerfile](web/Dockerfile) in this repository so local web patches are guaranteed to land in the deployed image.
 - In addition, the workaround is also delivered through a mounted [examples/coolify/custom-config.js](examples/coolify/custom-config.js), so the deployment keeps working even if one of the two paths is missed by the platform.
 - Net effect: both the built image and the mounted runtime config now carry the same local recovery behavior.
+- Coolify runs this stack with the repository root as docker compose project-directory, so the compose file intentionally references [web](web) and [examples/coolify/custom-config.js](examples/coolify/custom-config.js) from repo root, not relative to [examples/coolify/docker-compose.yml](examples/coolify/docker-compose.yml).
 
 What it does:
 

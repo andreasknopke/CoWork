@@ -2,7 +2,7 @@ services:
   web:
     image: cowork-jitsi-web:${JITSI_IMAGE_VERSION:-stable}
     build:
-      context: ../../web
+      context: ./web
       dockerfile: Dockerfile
       args:
         JITSI_REPO: jitsi
@@ -12,7 +12,7 @@ services:
       - "80"
     volumes:
       - jitsi-web-config:/config
-      - ./custom-config.js:/config/custom-config.js:ro
+      - ./examples/coolify/custom-config.js:/config/custom-config.js:ro
       - jitsi-web-crontabs:/var/spool/cron/crontabs
       - jitsi-transcripts:/usr/share/jitsi-meet/transcripts
     environment:
