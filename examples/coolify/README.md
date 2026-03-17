@@ -63,6 +63,7 @@ If you change `TURN_PORT` or the relay range, open those values instead.
 - The first startup takes longer because Prosody and web config are initialized.
 - Wrong `JVB_ADVERTISE_IPS` is the most common reason for calls with no audio/video.
 - Browser logs containing `get STUN/TURN credentials (extdisco)` with `service-unavailable` mean that Prosody is not advertising any TURN service.
+- If a conference or screen share drops again after roughly 60 to 70 seconds with an XMPP websocket close, the Coolify example now also raises the internal websocket proxy timeouts and the Prosody SMACKS hibernation window by default.
 
 ## 5. TURN Relay
 
@@ -100,6 +101,11 @@ This example now enables more verbose diagnostics by default while investigating
 - `JVB_LOG_LEVEL=FINE`
 - `JICOFO_LOG_FILE=/config/jicofo.log`
 - `JVB_LOG_FILE=/config/jvb.log`
+- `XMPP_WEBSOCKET_PROXY_READ_TIMEOUT=3600s`
+- `XMPP_WEBSOCKET_PROXY_SEND_TIMEOUT=3600s`
+- `COLIBRI_WEBSOCKET_PROXY_READ_TIMEOUT=3600s`
+- `COLIBRI_WEBSOCKET_PROXY_SEND_TIMEOUT=3600s`
+- `PROSODY_SMACKS_HIBERNATION_TIME=300`
 
 What to look for:
 

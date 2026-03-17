@@ -9,6 +9,9 @@
 {{ $JIBRI_RECORDER_USER := .Env.JIBRI_RECORDER_USER | default "recorder" -}}
 {{ $JIGASI_TRANSCRIBER_USER := .Env.JIGASI_TRANSCRIBER_USER | default "transcriber" -}}
 {{ $LIMIT_MESSAGES_CHECK_TOKEN := .Env.PROSODY_LIMIT_MESSAGES_CHECK_TOKEN | default "0" | toBool -}}
+{{ $PROSODY_SMACKS_HIBERNATION_TIME := .Env.PROSODY_SMACKS_HIBERNATION_TIME | default "60" -}}
+{{ $PROSODY_SMACKS_MAX_OLD_SESSIONS := .Env.PROSODY_SMACKS_MAX_OLD_SESSIONS | default "1" -}}
+{{ $PROSODY_SMACKS_MAX_UNACKED_STANZAS := .Env.PROSODY_SMACKS_MAX_UNACKED_STANZAS | default "5" -}}
 {{ $RATE_LIMIT_LOGIN_RATE := .Env.PROSODY_RATE_LIMIT_LOGIN_RATE | default "3" -}}
 {{ $RATE_LIMIT_SESSION_RATE := .Env.PROSODY_RATE_LIMIT_SESSION_RATE | default "200" -}}
 {{ $RATE_LIMIT_TIMEOUT := .Env.PROSODY_RATE_LIMIT_TIMEOUT | default "60" -}}
@@ -41,11 +44,11 @@ http_default_host = "v{{ $VISITOR_INDEX }}.{{ $VISITORS_XMPP_DOMAIN }}"
 main_domain = '{{ $XMPP_DOMAIN }}';
 
 -- https://prosody.im/doc/modules/mod_smacks
-smacks_max_unacked_stanzas = 5;
-smacks_hibernation_time = 60;
+smacks_max_unacked_stanzas = {{ $PROSODY_SMACKS_MAX_UNACKED_STANZAS }};
+smacks_hibernation_time = {{ $PROSODY_SMACKS_HIBERNATION_TIME }};
 -- this is dropped in 0.12
 smacks_max_hibernated_sessions = 1;
-smacks_max_old_sessions = 1;
+smacks_max_old_sessions = {{ $PROSODY_SMACKS_MAX_OLD_SESSIONS }};
 
 unlimited_jids = { "focus@{{ $XMPP_AUTH_DOMAIN }}" }
 limits = {

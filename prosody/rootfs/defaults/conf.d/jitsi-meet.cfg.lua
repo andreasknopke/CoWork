@@ -23,6 +23,9 @@
 {{ $JIGASI_TRANSCRIBER_USER := .Env.JIGASI_TRANSCRIBER_USER | default "transcriber" -}}
 {{ $JIGASI_XMPP_USER := .Env.JIGASI_XMPP_USER | default "jigasi" -}}
 {{ $JVB_AUTH_USER := .Env.JVB_AUTH_USER | default "jvb" -}}
+{{ $PROSODY_SMACKS_HIBERNATION_TIME := .Env.PROSODY_SMACKS_HIBERNATION_TIME | default "60" -}}
+{{ $PROSODY_SMACKS_MAX_OLD_SESSIONS := .Env.PROSODY_SMACKS_MAX_OLD_SESSIONS | default "1" -}}
+{{ $PROSODY_SMACKS_MAX_UNACKED_STANZAS := .Env.PROSODY_SMACKS_MAX_UNACKED_STANZAS | default "5" -}}
 {{ $JWT_ALLOW_EMPTY := .Env.JWT_ALLOW_EMPTY | default "0" | toBool -}}
 {{ $JWT_ASAP_KEYSERVER := .Env.JWT_ASAP_KEYSERVER | default "" -}}
 {{ $JWT_AUTH_TYPE := .Env.JWT_AUTH_TYPE | default "token" -}}
@@ -95,9 +98,9 @@ consider_bosh_secure = true;
 consider_websocket_secure = true;
 
 {{ if $ENABLE_XMPP_WEBSOCKET }}
-smacks_max_unacked_stanzas = 5;
-smacks_hibernation_time = 60;
-smacks_max_old_sessions = 1;
+smacks_max_unacked_stanzas = {{ $PROSODY_SMACKS_MAX_UNACKED_STANZAS }};
+smacks_hibernation_time = {{ $PROSODY_SMACKS_HIBERNATION_TIME }};
+smacks_max_old_sessions = {{ $PROSODY_SMACKS_MAX_OLD_SESSIONS }};
 {{ end }}
 
 {{ if $ENABLE_JAAS_COMPONENTS }}
