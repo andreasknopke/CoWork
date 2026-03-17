@@ -30,6 +30,9 @@
     }
 
     window[INSTALL_GUARD] = true;
+    if (window.console && typeof window.console.warn === 'function') {
+        window.console.warn('[cowork-local-recovery] custom-config.js loaded');
+    }
 
     config.prejoinConfig = config.prejoinConfig || {};
 
