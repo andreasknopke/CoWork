@@ -32,23 +32,29 @@ services:
       - "${TURN_PORT:-3478}:${TURN_PORT:-3478}/udp"
       - "${TURN_PORT:-3478}:${TURN_PORT:-3478}/tcp"
       - "${TURN_MIN_PORT:-20000}-${TURN_MAX_PORT:-20050}:${TURN_MIN_PORT:-20000}-${TURN_MAX_PORT:-20050}/udp"
+    entrypoint:
+      - /bin/sh
+      - -ec
     command:
-      - -n
-      - --log-file=stdout
-      - --fingerprint
-      - --no-tls
-      - --no-dtls
-      - --use-auth-secret
-      - --static-auth-secret=${TURN_CREDENTIALS:?TURN_CREDENTIALS is required}
-      - --realm=${TURN_HOST:?TURN_HOST is required}
-      - --external-ip=${TURN_EXTERNAL_IP:?TURN_EXTERNAL_IP is required}
-      - --listening-ip=0.0.0.0
-      - --listening-port=${TURN_PORT:-3478}
-      - --min-port=${TURN_MIN_PORT:-20000}
-      - --max-port=${TURN_MAX_PORT:-20050}
-      - --no-cli
-      - --no-multicast-peers
-      - --stale-nonce=600
+      - |
+        cat > /tmp/turnserver.conf <<EOF
+        log-file=stdout
+        fingerprint
+        use-auth-secret
+        static-auth-secret=${TURN_CREDENTIALS:?TURN_CREDENTIALS is required}
+        realm=${TURN_HOST:?TURN_HOST is required}
+        external-ip=${TURN_EXTERNAL_IP:?TURN_EXTERNAL_IP is required}
+        listening-ip=0.0.0.0
+        listening-port=${TURN_PORT:-3478}
+        min-port=${TURN_MIN_PORT:-20000}
+        max-port=${TURN_MAX_PORT:-20050}
+        no-cli
+        no-tls
+        no-dtls
+        no-multicast-peers
+        stale-nonce=600
+        EOF
+        exec turnserver -c /tmp/turnserver.conf
     networks:
       meet.jitsi:
 
