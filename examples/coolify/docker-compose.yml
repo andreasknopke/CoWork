@@ -11,6 +11,7 @@ services:
     environment:
       - ENABLE_COLIBRI_WEBSOCKET=1
       - ENABLE_XMPP_WEBSOCKET=1
+      - PREFER_BOSH=${PREFER_BOSH:-1}
       - PUBLIC_URL=${PUBLIC_URL}
       - TZ=${TZ:-Europe/Berlin}
       - DISABLE_HTTPS=${DISABLE_HTTPS:-1}

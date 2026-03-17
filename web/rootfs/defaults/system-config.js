@@ -4,6 +4,7 @@
 {{ $ENABLE_AUTH_DOMAIN := .Env.ENABLE_AUTH_DOMAIN | default "true" | toBool -}}
 {{ $ENABLE_GUESTS := .Env.ENABLE_GUESTS | default "false" | toBool -}}
 {{ $ENABLE_SUBDOMAINS := .Env.ENABLE_SUBDOMAINS | default "true" | toBool -}}
+{{ $PREFER_BOSH := .Env.PREFER_BOSH | default "false" | toBool -}}
 {{ $ENABLE_XMPP_WEBSOCKET := .Env.ENABLE_XMPP_WEBSOCKET | default "1" | toBool -}}
 {{ $PUBLIC_URL_DOMAIN := .Env.PUBLIC_URL | default "https://localhost:8443" | trimPrefix "https://" | trimSuffix "/" -}}
 {{ $XMPP_DOMAIN := .Env.XMPP_DOMAIN | default "meet.jitsi" -}}
@@ -64,6 +65,8 @@ config.websocket = 'wss://{{ $PUBLIC_URL_DOMAIN }}/' + subdir + 'xmpp-websocket'
 config.websocket = 'wss://{{ $PUBLIC_URL_DOMAIN }}/xmpp-websocket';
 {{ end -}}
 {{ end -}}
+
+config.preferBosh = {{ $PREFER_BOSH }};
 
 config.bridgeChannel = {
     preferSctp: {{ $JVB_PREFER_SCTP }}

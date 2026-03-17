@@ -63,7 +63,9 @@ If you change `TURN_PORT` or the relay range, open those values instead.
 - The first startup takes longer because Prosody and web config are initialized.
 - Wrong `JVB_ADVERTISE_IPS` is the most common reason for calls with no audio/video.
 - Browser logs containing `get STUN/TURN credentials (extdisco)` with `service-unavailable` mean that Prosody is not advertising any TURN service.
-- If a conference or screen share drops again after roughly 60 to 70 seconds with an XMPP websocket close, the Coolify example now also raises the internal websocket proxy timeouts and the Prosody SMACKS hibernation window by default.
+- There is no built-in demo timeout in this stack. If a room dies again after an exact idle window such as `1:17`, the usual culprit is the browser-to-proxy XMPP websocket path or an outer automation layer, not Jitsi licensing.
+- Because Coolify commonly sits behind another reverse proxy layer, this example now prefers BOSH over XMPP websocket by default. That is the blunt but reliable way to bypass websocket idle cuts and hidden-iframe timer throttling.
+- If you switch back to websocket mode later and a conference or screen share drops again after roughly 60 to 70 seconds with an XMPP websocket close, the example still raises the internal websocket proxy timeouts and the Prosody SMACKS hibernation window by default.
 
 ## 5. TURN Relay
 
@@ -96,6 +98,7 @@ These values are consumed by Prosody and exposed to clients through XMPP extdisc
 
 This example now enables more verbose diagnostics by default while investigating unstable media sessions:
 
+- `PREFER_BOSH=1`
 - `PROSODY_LOG_LEVEL=debug`
 - `JICOFO_LOG_LEVEL=FINE`
 - `JVB_LOG_LEVEL=FINE`
@@ -109,8 +112,11 @@ This example now enables more verbose diagnostics by default while investigating
 
 What to look for:
 
+- If the conference becomes stable with `PREFER_BOSH=1`, the timer is on the websocket path in front of Jitsi, not in Jicofo or Prosody room logic.
+- If it still dies with `PREFER_BOSH=1`, the timer is outside the XMPP websocket path and we should inspect the host app lifecycle or external automation next.
 - Auth or JWT problems usually show up in Prosody or Jicofo as token/authentication errors.
 - Media path problems usually show up as repeated ICE restarts in JVB and `restartRequested=true` in Jicofo.
+- Connection lifecycle timing for `/http-bind` and `/xmpp-websocket` is now logged by nginx with request duration, upstream duration, and upgrade status.
 
 If you need even more detail, set additional java.util.logging categories through:
 
