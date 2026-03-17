@@ -7,6 +7,12 @@
 {{ $ENABLE_NO_AUDIO_DETECTION := .Env.ENABLE_NO_AUDIO_DETECTION | default "true" | toBool -}}
 {{ $ENABLE_P2P := .Env.ENABLE_P2P | default "true" | toBool -}}
 {{ $ENABLE_PREJOIN_PAGE := .Env.ENABLE_PREJOIN_PAGE | default "true" | toBool -}}
+{{ $ENABLE_LOCAL_RECOVERY_WORKAROUND := .Env.ENABLE_LOCAL_RECOVERY_WORKAROUND | default "false" | toBool -}}
+{{ $LOCAL_RECOVERY_REJOIN_MILLISECONDS := .Env.LOCAL_RECOVERY_REJOIN_MILLISECONDS | default "55000" -}}
+{{ $LOCAL_RECOVERY_INTERRUPT_GRACE_MILLISECONDS := .Env.LOCAL_RECOVERY_INTERRUPT_GRACE_MILLISECONDS | default "2500" -}}
+{{ $LOCAL_RECOVERY_REJOIN_TIMEOUT_MILLISECONDS := .Env.LOCAL_RECOVERY_REJOIN_TIMEOUT_MILLISECONDS | default "15000" -}}
+{{ $LOCAL_RECOVERY_MIN_INTERVAL_MILLISECONDS := .Env.LOCAL_RECOVERY_MIN_INTERVAL_MILLISECONDS | default "10000" -}}
+{{ $LOCAL_RECOVERY_RELOAD_FALLBACK := .Env.LOCAL_RECOVERY_RELOAD_FALLBACK | default "true" | toBool -}}
 {{ $ENABLE_WELCOME_PAGE := .Env.ENABLE_WELCOME_PAGE | default "true" | toBool -}}
 {{ $ENABLE_CLOSE_PAGE := .Env.ENABLE_CLOSE_PAGE | default "false" | toBool -}}
 {{ $ENABLE_RECORDING := .Env.ENABLE_RECORDING | default "false" | toBool -}}
@@ -306,6 +312,15 @@ config.prejoinConfig = {
     // Hides the participant name editing field in the prejoin screen.
     hideDisplayName: {{ $HIDE_PREJOIN_DISPLAY_NAME }}
 };
+
+{{ if $ENABLE_LOCAL_RECOVERY_WORKAROUND -}}
+try {
+    if (window.sessionStorage.getItem('cowork-local-recovery-skip-prejoin') === '1') {
+        config.prejoinConfig.enabled = false;
+        window.sessionStorage.removeItem('cowork-local-recovery-skip-prejoin');
+    }
+} catch (error) {}
+{{ end -}}
 
 // List of buttons to hide from the extra join options dropdown on prejoin screen.
 {{ if .Env.HIDE_PREJOIN_EXTRA_BUTTONS -}}
@@ -628,3 +643,299 @@ config.whiteboard.userLimit = 25;
 config.testing = {
     enableCodecSelectionAPI: true
 };
+
+{{ if $ENABLE_LOCAL_RECOVERY_WORKAROUND -}}
+config.coworkLocalRecovery = {
+    enabled: true,
+    rejoinMilliseconds: {{ $LOCAL_RECOVERY_REJOIN_MILLISECONDS }},
+    interruptGraceMilliseconds: {{ $LOCAL_RECOVERY_INTERRUPT_GRACE_MILLISECONDS }},
+    rejoinTimeoutMilliseconds: {{ $LOCAL_RECOVERY_REJOIN_TIMEOUT_MILLISECONDS }},
+    minIntervalMilliseconds: {{ $LOCAL_RECOVERY_MIN_INTERVAL_MILLISECONDS }},
+    reloadFallback: {{ $LOCAL_RECOVERY_RELOAD_FALLBACK }}
+};
+
+// Local-only workaround for deterministic conference drops around a fixed time window.
+(function() {
+    var installGuard = '__coworkLocalRecoveryInstalled';
+    var interruptedEvent = 'conference.connectionInterrupted';
+    var restoredEvent = 'conference.connectionRestored';
+    var skipPrejoinStorageKey = 'cowork-local-recovery-skip-prejoin';
+    var settings = config.coworkLocalRecovery;
+    var state = {
+        boundConference: null,
+        joinedAt: 0,
+        inFlight: false,
+        lastAttemptAt: 0,
+        preemptiveTimer: null,
+        interruptTimer: null,
+        watchdogTimer: null,
+        onInterrupted: null,
+        onRestored: null
+    };
+
+    if (window[installGuard]) {
+        return;
+    }
+
+    window[installGuard] = true;
+
+    function log(level, message, extra) {
+        if (!window.console || typeof window.console[level] !== 'function') {
+            return;
+        }
+
+        if (typeof extra === 'undefined') {
+            window.console[level]('[cowork-local-recovery] ' + message);
+            return;
+        }
+
+        window.console[level]('[cowork-local-recovery] ' + message, extra);
+    }
+
+    function clearTimer(name) {
+        if (!state[name]) {
+            return;
+        }
+
+        window.clearTimeout(state[name]);
+        state[name] = null;
+    }
+
+    function clearRecoveryTimers() {
+        clearTimer('preemptiveTimer');
+        clearTimer('interruptTimer');
+        clearTimer('watchdogTimer');
+    }
+
+    function getApp() {
+        return window.APP;
+    }
+
+    function getStore() {
+        var app = getApp();
+
+        return app && app.store;
+    }
+
+    function getJoinedConference() {
+        var store = getStore();
+        var appState;
+        var conferenceState;
+
+        if (!store || typeof store.getState !== 'function') {
+            return null;
+        }
+
+        appState = store.getState();
+        conferenceState = appState && appState['features/base/conference'];
+
+        return conferenceState && conferenceState.conference;
+    }
+
+    function fallbackReload(reason) {
+        if (!settings.reloadFallback) {
+            state.inFlight = false;
+            log('error', 'Silent rejoin failed and reload fallback is disabled (' + reason + ').');
+
+            return;
+        }
+
+        state.inFlight = false;
+        clearRecoveryTimers();
+
+        try {
+            window.sessionStorage.setItem(skipPrejoinStorageKey, '1');
+        } catch (error) {}
+
+        log('warn', 'Reloading page as recovery fallback (' + reason + ').');
+        window.setTimeout(function() {
+            window.location.reload();
+        }, 150);
+    }
+
+    function schedulePreemptiveRejoin(origin) {
+        var delay;
+
+        clearTimer('preemptiveTimer');
+
+        if (!state.boundConference || state.inFlight) {
+            return;
+        }
+
+        delay = settings.rejoinMilliseconds - (Date.now() - state.joinedAt);
+        if (delay < 0) {
+            delay = 0;
+        }
+
+        state.preemptiveTimer = window.setTimeout(function() {
+            attemptSilentRejoin('timer');
+        }, delay);
+
+        log('info', 'Scheduled silent rejoin in ' + delay + ' ms (' + origin + ').');
+    }
+
+    function detachConference(conference) {
+        if (!conference || typeof conference.off !== 'function') {
+            return;
+        }
+
+        if (state.onInterrupted) {
+            conference.off(interruptedEvent, state.onInterrupted);
+        }
+
+        if (state.onRestored) {
+            conference.off(restoredEvent, state.onRestored);
+        }
+    }
+
+    function getRejoinOptions() {
+        var store = getStore();
+        var appState = store && typeof store.getState === 'function' ? store.getState() : null;
+        var mediaState = appState && appState['features/base/media'] ? appState['features/base/media'] : {};
+        var audio = mediaState.audio || {};
+        var video = mediaState.video || {};
+
+        return {
+            startWithAudioMuted: Boolean(audio.muted),
+            startWithVideoMuted: Boolean(video.muted)
+        };
+    }
+
+    function attemptSilentRejoin(reason) {
+        var app = getApp();
+        var conferenceController = app && app.conference;
+        var now = Date.now();
+        var roomName;
+        var leavePromise;
+        var rejoinOptions;
+
+        if (state.inFlight) {
+            return;
+        }
+
+        if (now - state.lastAttemptAt < settings.minIntervalMilliseconds) {
+            log('warn', 'Skipping recovery attempt because the previous attempt was too recent (' + reason + ').');
+
+            return;
+        }
+
+        if (!conferenceController
+            || typeof conferenceController.leaveRoom !== 'function'
+            || typeof conferenceController.joinRoom !== 'function') {
+            fallbackReload('missing-controller-' + reason);
+
+            return;
+        }
+
+        roomName = conferenceController.roomName;
+        if (!roomName) {
+            fallbackReload('missing-room-' + reason);
+
+            return;
+        }
+
+        state.inFlight = true;
+        state.lastAttemptAt = now;
+        clearRecoveryTimers();
+
+        rejoinOptions = getRejoinOptions();
+
+        log('warn', 'Starting silent rejoin (' + reason + ').', rejoinOptions);
+
+        state.watchdogTimer = window.setTimeout(function() {
+            if (!state.inFlight) {
+                return;
+            }
+
+            fallbackReload('watchdog-' + reason);
+        }, settings.rejoinTimeoutMilliseconds);
+
+        try {
+            leavePromise = conferenceController.leaveRoom(false, 'local_recovery_' + reason);
+        } catch (error) {
+            leavePromise = Promise.reject(error);
+        }
+
+        Promise.resolve(leavePromise)
+            .catch(function(error) {
+                log('warn', 'leaveRoom(false) failed, continuing with joinRoom.', error);
+            })
+            .then(function() {
+                return conferenceController.joinRoom(roomName, rejoinOptions);
+            })
+            .then(function() {
+                state.inFlight = false;
+                clearTimer('watchdogTimer');
+                schedulePreemptiveRejoin('post-rejoin');
+                log('info', 'Silent rejoin finished (' + reason + ').');
+            })
+            .catch(function(error) {
+                state.inFlight = false;
+                clearTimer('watchdogTimer');
+                log('error', 'Silent rejoin failed (' + reason + ').', error);
+                fallbackReload('join-failed-' + reason);
+            });
+    }
+
+    function attachConference(conference) {
+        if (!conference || typeof conference.on !== 'function') {
+            return;
+        }
+
+        state.onInterrupted = function() {
+            clearTimer('interruptTimer');
+            state.interruptTimer = window.setTimeout(function() {
+                attemptSilentRejoin('interrupt');
+            }, settings.interruptGraceMilliseconds);
+
+            log('warn', 'Connection interrupted, scheduling accelerated recovery.');
+        };
+
+        state.onRestored = function() {
+            clearTimer('interruptTimer');
+            schedulePreemptiveRejoin('connection-restored');
+            log('info', 'Connection restored.');
+        };
+
+        conference.on(interruptedEvent, state.onInterrupted);
+        conference.on(restoredEvent, state.onRestored);
+    }
+
+    function syncConferenceBinding() {
+        var nextConference = getJoinedConference();
+
+        if (nextConference === state.boundConference) {
+            return;
+        }
+
+        detachConference(state.boundConference);
+        state.boundConference = nextConference;
+        clearTimer('interruptTimer');
+        clearTimer('preemptiveTimer');
+
+        if (!nextConference) {
+            return;
+        }
+
+        state.joinedAt = Date.now();
+        attachConference(nextConference);
+        schedulePreemptiveRejoin('conference-joined');
+    }
+
+    function installWhenReady() {
+        var store = getStore();
+
+        if (!store || typeof store.subscribe !== 'function' || typeof store.getState !== 'function') {
+            window.setTimeout(installWhenReady, 500);
+
+            return;
+        }
+
+        store.subscribe(syncConferenceBinding);
+        syncConferenceBinding();
+        log('info', 'Installed local recovery workaround.');
+    }
+
+    installWhenReady();
+})();
+{{ end -}}

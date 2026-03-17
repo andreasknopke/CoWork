@@ -67,7 +67,27 @@ If you change `TURN_PORT` or the relay range, open those values instead.
 - Because Coolify commonly sits behind another reverse proxy layer, this example now prefers BOSH over XMPP websocket by default. That is the blunt but reliable way to bypass websocket idle cuts and hidden-iframe timer throttling.
 - If you switch back to websocket mode later and a conference or screen share drops again after roughly 60 to 70 seconds with an XMPP websocket close, the example still raises the internal websocket proxy timeouts and the Prosody SMACKS hibernation window by default.
 
-## 5. TURN Relay
+## 5. Local Recovery Workaround
+
+For one specific local installation with a repeatable drop around `70` seconds, this example also supports an intentionally local-only stopgap:
+
+- `ENABLE_LOCAL_RECOVERY_WORKAROUND=1`
+- `LOCAL_RECOVERY_REJOIN_MILLISECONDS=55000`
+- `LOCAL_RECOVERY_INTERRUPT_GRACE_MILLISECONDS=2500`
+- `LOCAL_RECOVERY_REJOIN_TIMEOUT_MILLISECONDS=15000`
+- `LOCAL_RECOVERY_MIN_INTERVAL_MILLISECONDS=10000`
+- `LOCAL_RECOVERY_RELOAD_FALLBACK=1`
+
+What it does:
+
+- The web client schedules a silent same-room rebuild shortly before the known failure window.
+- Internally it uses Jitsi's legacy `APP.conference.leaveRoom(false)` plus `APP.conference.joinRoom(...)` path.
+- If the timer misses and the conference fires `connectionInterrupted` first, the client retries after a short grace period.
+- If that silent rejoin stalls, the browser reloads once and suppresses prejoin for the recovery load.
+
+This is not meant as a portable upstream fix. It is a site-local workaround for a deterministic failure pattern while the real media-path root cause is still under investigation.
+
+## 6. TURN Relay
 
 For users behind restrictive firewalls or NAT, this example includes a coturn relay on the same Coolify host.
 
@@ -94,7 +114,7 @@ If you prefer an external TURN server instead of the bundled container, keep usi
 
 These values are consumed by Prosody and exposed to clients through XMPP extdisco.
 
-## 6. Diagnostics
+## 7. Diagnostics
 
 This example now enables more verbose diagnostics by default while investigating unstable media sessions:
 
@@ -110,6 +130,7 @@ This example now enables more verbose diagnostics by default while investigating
 - `COLIBRI_WEBSOCKET_PROXY_READ_TIMEOUT=3600s`
 - `COLIBRI_WEBSOCKET_PROXY_SEND_TIMEOUT=3600s`
 - `PROSODY_SMACKS_HIBERNATION_TIME=300`
+- `ENABLE_LOCAL_RECOVERY_WORKAROUND=1` on the affected local deployment only
 
 What to look for:
 
